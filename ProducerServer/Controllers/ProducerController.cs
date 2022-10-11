@@ -17,8 +17,7 @@ namespace ProducerServer.Controllers
         [HttpPost("send/to/producer")]
         public IActionResult SendToConsumer(Letter letter)
         {
-            _logger.LogInformation($"Received back the letter with message {letter.Message}");
-
+            _logger.LogInformation($"Received back the letter with message '{letter.Message}'");
             return Ok();
         }
     };

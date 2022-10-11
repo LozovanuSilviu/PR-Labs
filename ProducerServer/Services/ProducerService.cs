@@ -25,12 +25,10 @@ public class ProducerService
             Task.Run(GenerateLetters);
         }
         
-
-        // for (int i = 0; i < 2; i++)
-        // {
-        //     Task.Run(SendLetters);
-        // }
-        _logger.LogInformation($"ZDAROV {_queue.Count}");
+        for (int i = 0; i < 2; i++)
+        {
+            Task.Run(SendLetters);
+        }
         return Task.CompletedTask;
     }
 
@@ -39,21 +37,12 @@ public class ProducerService
         
         while (true)
         {
-
             var value = new Letter()
             {
                 SenderName = "Sender"+new Random().Next(1,6),
                 Message = "this is the message i want to share"
             };
-            // _queue.Enqueue(value);
-            var client = new HttpClient();
-            var serializedLetter = JsonConvert.SerializeObject(value);
-            _logger.LogInformation(serializedLetter.ToString());
-            var result = 
-                await client.PostAsync("http://localhost:5168/api/send/to/consumer",
-                    new StringContent(serializedLetter, Encoding.UTF8, "applications/json"));
-            var content =  result.StatusCode.ToString();
-            _logger.LogInformation(content);
+            _queue.Enqueue(value);
             await Task.Delay(new Random().Next(1000,3000));
         }
     }
@@ -68,21 +57,11 @@ public class ProducerService
                await Task.Delay(1000);
 
                 _queue.TryDequeue(out Letter letter);
-                var client = new RestClient();
+                var client = new RestClient("http://localhost:5168");
                 var serializedLetter = JsonConvert.SerializeObject(letter);
-                _logger.LogInformation(serializedLetter.ToString());
-                var payload = new StringContent(serializedLetter, Encoding.UTF32, "applications/json");
-
-                payload.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-
-                _logger.LogInformation(payload.ToString());
-                var request =new RestRequest("http://localhost:5168/api/send/to/consumer", Method.Post);
-                request.AddParameter("application/json; charset=utf-8", letter, ParameterType.RequestBody);
-                request.RequestFormat = DataFormat.Json;
-                var result =
-                    await client.PostAsync(request);
-                var content =  result.StatusCode.ToString();
-                _logger.LogInformation(content);
+                var request = new RestRequest("/api/send/to/consumer",Method.Post);
+                request.AddJsonBody(serializedLetter);
+                var result =await client.ExecuteAsync(request);
             }
         }
     }
