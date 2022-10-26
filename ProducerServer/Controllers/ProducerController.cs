@@ -8,6 +8,7 @@ namespace ProducerServer.Controllers
     public class ConsumerController : ControllerBase
     {
         private readonly ILogger<ConsumerController> _logger;
+        private int count;
 
         public ConsumerController(ILogger<ConsumerController> logger)
         {
@@ -15,9 +16,10 @@ namespace ProducerServer.Controllers
         }
 
         [HttpPost("send/to/producer")]
-        public IActionResult SendToConsumer(Letter letter)
+        public IActionResult SendToConsumer(News news)
         {
-            _logger.LogInformation($"Received back the letter with message '{letter.Message}'");
+            count = new Random().Next(0, 100);
+            _logger.LogInformation($"Received feedback from people regarding the curiosity'{news.Message}'");
             return Ok();
         }
     };
