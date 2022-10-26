@@ -1,7 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Net.Http.Headers;
-using System.Text;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using ProducerServer.Models;
 using RestSharp;
 
@@ -10,61 +7,68 @@ namespace ProducerServer.Services;
 public class ProducerService
 {
     private readonly ILogger<ProducerService> _logger;
-    private readonly  ConcurrentQueue<Letter> _queue;
+    private readonly  Queue<News> _queue;
+    public Mutex mutex { get; set; }
+    public Mutex mutex1 { get; set; }
     public ProducerService(ILogger<ProducerService> logger)
     {
-        _queue = new ConcurrentQueue<Letter>();
+        _queue = new Queue<News>();
         _logger = logger;
+        mutex = new Mutex();
+        mutex1 = new Mutex();
         Run();
     }
 
-    private  Task Run()
+    private  void Run()
     {
+    
+        for (int i = 0; i < 3; i++) 
+        {
+            Thread.Sleep(3000);
+            Task.Run(ExtractData);
+        }
+
+        
         for (int i = 0; i < 5; i++)
         {
-            Task.Run(GenerateLetters);
-        }
-        
-        for (int i = 0; i < 2; i++)
-        {
+            Thread.Sleep(3000);
             Task.Run(SendLetters);
         }
-        return Task.CompletedTask;
     }
 
-    private async Task GenerateLetters()
+    private async Task ExtractData()
     {
-        
         while (true)
         {
-            var value = new Letter()
-            {
-                SenderName = "Sender"+new Random().Next(1,6),
-                Message = "this is the message i want to share"
-            };
-            _queue.Enqueue(value);
-            await Task.Delay(new Random().Next(1000,3000));
+            mutex.WaitOne();
+                var messages = File.ReadLines(@"C:\producerFiles\catFacts.txt").ToArray();
+                var message = messages[new Random().Next(0,9)];
+                var news = new News()
+                {
+                    Message = message
+                };
+                _queue.Enqueue(news);
+            mutex.ReleaseMutex();
         }
+
     }
 
     private async Task SendLetters()
     {
         while (true)
         {
+            mutex1.WaitOne();
+                if (_queue.Count !=0)
+                {
+                    _queue.TryDequeue(out News letter);
+                    var client = new RestClient("http://localhost:5168");
+                    var serializedLetter = JsonConvert.SerializeObject(letter);
+                    var request = new RestRequest("/api/send/to/consumer",Method.Post);
+                    request.AddJsonBody(serializedLetter);
+                    var result =client.ExecuteAsync(request);
+                }
 
-            if (_queue.Count !=0)
-            {
-               await Task.Delay(1000);
-
-                _queue.TryDequeue(out Letter letter);
-                var client = new RestClient("http://localhost:5168");
-                var serializedLetter = JsonConvert.SerializeObject(letter);
-                var request = new RestRequest("/api/send/to/consumer",Method.Post);
-                request.AddJsonBody(serializedLetter);
-                var result =await client.ExecuteAsync(request);
-            }
+                mutex1.ReleaseMutex();
         }
     }
-    
-    
 }

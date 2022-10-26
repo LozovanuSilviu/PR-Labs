@@ -1,7 +1,6 @@
 ﻿namespace ProducerServer.Models;
 
-public class Letter
-{
-    public string SenderName { get; set; }
+public class News
+{ 
     public string Message { get; set; }
 }
