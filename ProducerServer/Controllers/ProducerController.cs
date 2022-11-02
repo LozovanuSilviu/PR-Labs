@@ -16,10 +16,10 @@ namespace ProducerServer.Controllers
         }
 
         [HttpPost("send/to/producer")]
-        public IActionResult SendToConsumer(News news)
+        public IActionResult SendToConsumer(ProccessedNews news)
         {
             count = new Random().Next(0, 100);
-            _logger.LogInformation($"Received feedback from people regarding the curiosity'{news.Message}'");
+            _logger.LogInformation($"Received feedback from people regarding the curiosity'{news.message} which was indexed {news.index}'");
             return Ok();
         }
     };

@@ -22,7 +22,7 @@ public class ProducerService
     private  void Run()
     {
     
-        for (int i = 0; i < 3; i++) 
+        for (int i = 0; i < 5; i++) 
         {
             Thread.Sleep(3000);
             Task.Run(ExtractData);
@@ -36,12 +36,12 @@ public class ProducerService
         }
     }
 
-    private async Task ExtractData()
+    private  Task ExtractData()
     {
         while (true)
         {
             mutex.WaitOne();
-                var messages = File.ReadLines(@"C:\producerFiles\catFacts.txt").ToArray();
+                var messages =File.ReadLines(@"C:\producerFiles\catFacts.txt").ToArray();
                 var message = messages[new Random().Next(0,9)];
                 var news = new News()
                 {
@@ -61,11 +61,11 @@ public class ProducerService
                 if (_queue.Count !=0)
                 {
                     _queue.TryDequeue(out News letter);
-                    var client = new RestClient("http://localhost:5168");
+                    var client = new RestClient("http://localhost:5086");
                     var serializedLetter = JsonConvert.SerializeObject(letter);
-                    var request = new RestRequest("/api/send/to/consumer",Method.Post);
+                    var request = new RestRequest("/api/send/to/aggregator",Method.Post);
                     request.AddJsonBody(serializedLetter);
-                    var result =client.ExecuteAsync(request);
+                    var result = client.ExecuteAsync(request);
                 }
 
                 mutex1.ReleaseMutex();
